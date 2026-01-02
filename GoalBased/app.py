@@ -123,7 +123,11 @@ with tab1:
                 response = model.generate_content(prompt_text)
                 reply = response.text
             except Exception as e:
-                reply = f"Sorry, I had trouble thinking. Error: {e}"
+                if "429" in str(e):
+                    reply = "⚠️ I’m out of free API quota right now. Please try again later or add a paid API key."
+                else:
+                    reply = f"Error: {e}"
+
 
         st.session_state.chat.append({"role": "assistant", "content": reply})
         with st.chat_message("assistant"):
