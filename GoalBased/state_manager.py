@@ -29,6 +29,13 @@ class GoalState:
         for key, value in data.items():
             # Filter out null/None/empty strings
             if value and str(value).lower() not in ["null", "none", "n/a"] and not getattr(self, key, None):
+                # Special handling for skills to ensure it's a string
+                if key == 'skills':
+                    if isinstance(value, list):
+                        value = ", ".join([str(v) for v in value])
+                    elif isinstance(value, dict):
+                        value = ", ".join([f"{k}: {v}" for k, v in value.items()])
+                
                 setattr(self, key, value)
 
     def is_complete(self):

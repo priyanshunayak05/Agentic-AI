@@ -63,9 +63,16 @@ with st.sidebar:
     st.subheader("Current Profile")
     st.text(f"Name: {st.session_state.state.name or 'Pending...'}")
     st.text(f"Email: {st.session_state.state.email or 'Pending...'}")
-    if st.session_state.state.skills:
-        st.caption(f"Skills: {st.session_state.state.skills[:50]}...")
-        
+    skills = getattr(st.session_state.state, "skills", None)
+    if skills:
+        # If list, format nicely
+        if isinstance(skills, list):
+            skills = ", ".join(skills)
+
+        # Always stringify before slicing to avoid KeyError
+        skills = str(skills)
+        st.caption(f"Skills: {skills[:50]}...")
+
     if st.button("🔄 Reset Profile"):
         st.session_state.state = GoalState()
         st.session_state.chat = []

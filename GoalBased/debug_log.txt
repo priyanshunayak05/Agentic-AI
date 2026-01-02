@@ -1,2 +1,2 @@
 RAW_RESPONSE:
-{}
+{"name": null, "email": null, "phone": null, "skills": null, "experience": null, "education": null, "linkedin": null}
