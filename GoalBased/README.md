@@ -3,8 +3,16 @@
 **Your intelligent companion for landing your dream job.**  
 This AI-powered application helps you build a professional profile, generate tailored cover letters, and practice for interviews—all based on your unique resume and experience.
 
+## 🌐 Deployments
+
+You can view the live application at:
+- **Streamlit Cloud:** [https://job-hunt-ai.streamlit.app/](https://job-hunt-ai.streamlit.app/)
+- **Render:** [https://job-assistant-czhd.onrender.com/](https://job-assistant-czhd.onrender.com/)
+
 [![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://job-hunt-ai.streamlit.app/)
 [![Render](https://img.shields.io/badge/Deployed%20on-Render-black?style=flat&logo=render)](https://job-assistant-czhd.onrender.com/)
+
+---
 
 ![Demo Preview](assets/demo.png)
 *(Add a screenshot of your app here in an `assets` folder named `demo.png`)*
@@ -55,7 +63,6 @@ GoalBased/
 ├── state_manager.py     # Data models & Gemini extraction logic
 ├── utils.py             # Helper function to read PDF files
 ├── requirements.txt     # Python dependencies
-├── render.yaml          # Render deployment configuration
 └── README.md            # Project documentation
 ```
 
@@ -108,14 +115,6 @@ Follow these steps to set up the project on your machine.
    streamlit run app.py
    ```
    The app will automatically open in your browser at `http://localhost:8501`.
-
----
-
-## 🌐 Deployments
-
-You can view the live application at:
-- **Streamlit Cloud:** [https://job-hunt-ai.streamlit.app/](https://job-hunt-ai.streamlit.app/)
-- **Render:** [https://job-assistant-czhd.onrender.com/](https://job-assistant-czhd.onrender.com/)
 
 ---
 
