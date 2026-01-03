@@ -24,24 +24,65 @@ if not api_key:
 
 genai.configure(api_key=api_key)
 
-# Auto-select best model
-valid_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
+# Initialize Session State for Models
+if "valid_models" not in st.session_state:
+    st.session_state.valid_models = []
+if "current_model_index" not in st.session_state:
+    st.session_state.current_model_index = 0
 
-if not valid_models:
+# Fetch valid models once
+if not st.session_state.valid_models:
+    try:
+        # Fetch models that support content generation
+        # Exclude 'tts' models which are audio-only output
+        all_models = [
+            m.name for m in genai.list_models() 
+            if 'generateContent' in m.supported_generation_methods 
+            and 'tts' not in m.name.lower()
+        ]
+        
+        # Prioritize flash, then pro, then others
+        flash_models = [m for m in all_models if "flash" in m.lower()]
+        pro_models = [m for m in all_models if "pro" in m.lower() and "vision" not in m.lower()]
+        other_models = [m for m in all_models if m not in flash_models and m not in pro_models]
+        
+        st.session_state.valid_models = flash_models + pro_models + other_models
+    except Exception as e:
+        st.error(f"Error fetching models: {e}")
+        st.stop()
+
+if not st.session_state.valid_models:
     st.error("No valid Gemini models found for this API key.")
     st.stop()
 
-# Prefer flash or pro
-model_name = valid_models[0]
-for m in valid_models:
-    if "flash" in m.lower():
-        model_name = m
-        break
-    if "pro" in m.lower() and "vision" not in m.lower(): # Prefer text-capable pro
-        model_name = m
+def get_active_model():
+    """Returns the currently active GenerativeModel instance."""
+    model_name = st.session_state.valid_models[st.session_state.current_model_index]
+    return genai.GenerativeModel(model_name)
 
-print(f"Selected Model: {model_name}")
-model = genai.GenerativeModel(model_name)
+def run_with_retry(func, *args, **kwargs):
+    """
+    Executes a function with automatic model switching on 429 errors.
+    """
+    max_retries = len(st.session_state.valid_models)
+    
+    for _ in range(max_retries):
+        try:
+            return func(*args, **kwargs)
+        except Exception as e:
+            if "429" in str(e):
+                # Switch to next model
+                st.session_state.current_model_index = (st.session_state.current_model_index + 1) % len(st.session_state.valid_models)
+                new_model = st.session_state.valid_models[st.session_state.current_model_index]
+                st.toast(f"⚠️ Quota limit reached. Switching to {new_model}...", icon="🔄")
+                continue # Retry with new model
+            else:
+                raise e # Propagate other errors
+    
+    raise Exception("All available models exhausted due to quota limits.")
+
+model = get_active_model() # Initial model for backwards compatibility where valid
+
 
 # -- Sidebar: Resume Upload --
 with st.sidebar:
@@ -53,7 +94,8 @@ with st.sidebar:
             with st.spinner("Extracting info..."):
                 text = extract_text_from_pdf(uploaded_file)
                 if text:
-                    extracted_data = extract_info_with_llm(text, model)
+                    # Use retry wrapper
+                    extracted_data = run_with_retry(lambda: extract_info_with_llm(text, get_active_model()))
                     st.session_state.state.update_from_dict(extracted_data)
                     st.success("Resume processed! I've updated your profile.")
                 else:
@@ -79,7 +121,7 @@ with st.sidebar:
         st.rerun()
 
 # -- Main UI --
-st.title("🎯 Best Job Application Assistant")
+st.title("🚀 AI Career Assistant — Job Hunter")
 
 tab1, tab2, tab3 = st.tabs(["💬 Assistant", "📝 Cover Letter", "🎤 Interview Prep"])
 
@@ -87,51 +129,59 @@ tab1, tab2, tab3 = st.tabs(["💬 Assistant", "📝 Cover Letter", "🎤 Intervi
 with tab1:
     st.markdown("### Let's build your profile!")
     
-    # Display Chat
+    # 1. Display Chat History
     for msg in st.session_state.chat:
         with st.chat_message(msg["role"]):
             st.write(msg["content"])
 
-    # User Input
-    user_input = st.chat_input("Tell me about your experience...")
-
-    if user_input:
-        st.session_state.chat.append({"role": "user", "content": user_input})
-        with st.chat_message("user"):
-            st.write(user_input)
-
-        # Extract info from user message
-        new_info = extract_info_with_llm(user_input, model)
-        st.session_state.state.update_from_dict(new_info)
-
-        # Determine reply
-        if st.session_state.state.is_complete():
-            reply = "Great! I have your basic details. Check out the **Cover Letter** or **Interview Prep** tabs!"
-        else:
-            missing = st.session_state.state.missing_fields()
-            prompt_text = f"""
-            You are a helpful Career Coach.
-            The user profile is missing: {', '.join(missing)}.
-            
-            Current context: {user_input}
-            Current state: {str(st.session_state.state)}
-            
-            Ask ONE friendly, specific question to get the missing information.
-            If the user asked a question, answer it first, then ask for missing info.
-            """
-            try:
-                response = model.generate_content(prompt_text)
-                reply = response.text
-            except Exception as e:
-                if "429" in str(e):
-                    reply = "⚠️ I’m out of free API quota right now. Please try again later or add a paid API key."
-                else:
-                    reply = f"Error: {e}"
-
-
-        st.session_state.chat.append({"role": "assistant", "content": reply})
+    # 2. Generate Assistant Response (Reactive)
+    if st.session_state.chat and st.session_state.chat[-1]["role"] == "user":
+        # Get the last user message
+        last_user_msg = st.session_state.chat[-1]["content"]
+        
         with st.chat_message("assistant"):
-            st.write(reply)
+            with st.spinner("Thinking..."):
+                # Extract info from user message
+                new_info = run_with_retry(lambda: extract_info_with_llm(last_user_msg, get_active_model()))
+                st.session_state.state.update_from_dict(new_info)
+
+                # Determine reply
+                if st.session_state.state.is_complete():
+                    reply = "Great! I have your basic details. Check out the **Cover Letter** or **Interview Prep** tabs!"
+                else:
+                    missing = st.session_state.state.missing_fields()
+                    prompt_text = f"""
+                    You are a helpful Career Coach.
+                    The user profile is missing: {', '.join(missing)}.
+                    
+                    Current context: {last_user_msg}
+                    Current state: {str(st.session_state.state)}
+                    
+                    Ask ONE friendly, specific question to get the missing information.
+                    If the user asked a question, answer it first, then ask for missing info.
+                    """
+                    try:
+                        # Use retry wrapper
+                        response = run_with_retry(lambda: get_active_model().generate_content(prompt_text))
+                        reply = response.text
+                    except Exception as e:
+                        if "429" in str(e):
+                            reply = "⚠️ I’m out of free API quota right now. Please try again later or add a paid API key."
+                        else:
+                            reply = f"Error: {e}"
+
+                st.write(reply)
+                
+        # Append assistant message to history
+        st.session_state.chat.append({"role": "assistant", "content": reply})
+        # Rerun to finalize the UI state (e.g. remove spinner, ensure persistence)
+        st.rerun()
+
+    # 3. Handle User Input
+    if user_input := st.chat_input("Tell me about your experience..."):
+        # Append user message and rerun to update UI immediately
+        st.session_state.chat.append({"role": "user", "content": user_input})
+        st.rerun()
 
 
 # -- Tab 2: Cover Letter --
@@ -159,7 +209,7 @@ with tab2:
                 Keep it engaging, professional, and highlight matching skills.
                 """
                 try:
-                    res = model.generate_content(prompt)
+                    res = run_with_retry(lambda: get_active_model().generate_content(prompt))
                     st.markdown(res.text)
                 except Exception as e:
                     st.error(f"Generation failed: {e}")
@@ -180,7 +230,7 @@ with tab3:
                 Also provide brief tips for answering each.
                 """
                 try:
-                    res = model.generate_content(prompt)
+                    res = run_with_retry(lambda: get_active_model().generate_content(prompt))
                     st.markdown(res.text)
                 except Exception as e:
                     st.error(f"Generation failed: {e}")

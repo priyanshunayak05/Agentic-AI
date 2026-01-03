@@ -111,6 +111,10 @@ def extract_info_with_llm(text: str, model):
             
         return json.loads(cleaned_text)
     except Exception as e:
+        # Re-raise 429 errors for handling in app.py
+        if "429" in str(e):
+            raise e
+            
         print(f"Extraction error: {e}")
         with open("debug_log.txt", "w", encoding="utf-8") as f:
             f.write(f"EXCEPTION: {e}")
