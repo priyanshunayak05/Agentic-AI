@@ -9,9 +9,6 @@ You can view the live application at:
 - **Streamlit Cloud:** [https://job-hunt-ai.streamlit.app/](https://job-hunt-ai.streamlit.app/)
 - **Render:** [https://job-assistant-czhd.onrender.com/](https://job-assistant-czhd.onrender.com/)
 
-[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://job-hunt-ai.streamlit.app/)
-[![Render](https://img.shields.io/badge/Deployed%20on-Render-black?style=flat&logo=render)](https://job-assistant-czhd.onrender.com/)
-
 ---
 
 ![Demo Preview](assets/demo.png)
