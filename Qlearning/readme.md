@@ -5,10 +5,7 @@ The snake starts dumb, learns from its mistakes, avoids danger, finds food intel
 
 ---
 
-## 🚀 What’s New in This Version?
-This upgraded version includes:
-
-✔ **Bigger Board (600x600)**  
+✔ ** Board (600x600)**  
 ✔ **Visible Grid** – clear movement visualization  
 ✔ **Reduced Speed** – easier to observe learning  
 ✔ **Smarter State Representation with Danger Detection**
