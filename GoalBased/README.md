@@ -11,8 +11,19 @@ You can view the live application at:
 [![Render](https://img.shields.io/badge/Deployed%20on-Render-black?style=flat&logo=render)](https://job-assistant-czhd.onrender.com/)
 ---
 
-![Demo Preview](assets/demo.png)
-*(Add a screenshot of your app here in an `assets` folder named `demo.png`)*
+
+## 📸 Project Screenshots
+
+### Assistant Chat Interface
+<img width="1919" height="957" alt="image" src="https://github.com/user-attachments/assets/28180b7e-4c6c-4e85-be2c-d473f8db1f9a" />
+
+
+### Interview Preparation Module
+
+<img width="1912" height="956" alt="image" src="https://github.com/user-attachments/assets/559851a0-c66e-46af-ad95-9286c66b0aba" />
+
+
+
 
 ---
 
